@@ -5,43 +5,43 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
+	"github.com/santhosh-tekuri/jsonschema/v6/kind"
+	"golang.org/x/text/language"
+	"golang.org/x/text/message"
 )
+
+var englishPrinter = message.NewPrinter(language.English)
 
 // jsonSchemaValidator wraps the santhosh-tekuri/jsonschema validator
 type jsonSchemaValidator struct {
-	compiler *jsonschema.Compiler
 	schema   *jsonschema.Schema
+	bundled  *bundledSchema
+	settings *schemaValidationSettings
 }
 
 // newJSONSchemaValidator creates a new validator using JSON Schema 2020-12
 func newJSONSchemaValidator(schema *Schema, settings *schemaValidationSettings) (*jsonSchemaValidator, error) {
 	// Convert OpenAPI Schema to JSON Schema format
-	schemaBytes, err := json.Marshal(schema)
+	bundled, err := bundleJSONSchema(schema)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal schema: %w", err)
+		return nil, fmt.Errorf("failed to bundle schema: %w", err)
 	}
-
-	var schemaMap map[string]any
-	if err := json.Unmarshal(schemaBytes, &schemaMap); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal schema: %w", err)
-	}
-
-	// OpenAPI 3.1 specific transformations
-	transformOpenAPIToJSONSchema(schemaMap)
 
 	// Create compiler
 	compiler := jsonschema.NewCompiler()
 	compiler.DefaultDraft(jsonschema.Draft2020)
 
 	// Keep enforcing the formats the built-in validator enforces
-	registerFormatValidators(compiler, schemaMap, settings)
+	registerFormatValidators(compiler, bundled.document, settings)
 
 	// Add the schema
 	schemaURL := "https://example.com/schema.json"
-	if err := compiler.AddResource(schemaURL, schemaMap); err != nil {
+	if err := compiler.AddResource(schemaURL, bundled.document); err != nil {
 		return nil, fmt.Errorf("failed to add schema resource: %w", err)
 	}
 
@@ -52,14 +52,15 @@ func newJSONSchemaValidator(schema *Schema, settings *schemaValidationSettings) 
 	}
 
 	return &jsonSchemaValidator{
-		compiler: compiler,
 		schema:   compiledSchema,
+		bundled:  bundled,
+		settings: settings,
 	}, nil
 }
 
-func registerFormatValidators(compiler *jsonschema.Compiler, schemaMap map[string]any, settings *schemaValidationSettings) {
+func registerFormatValidators(compiler *jsonschema.Compiler, schema any, settings *schemaValidationSettings) {
 	formats := make(map[string]struct{})
-	collectFormats(schemaMap, formats)
+	collectFormats(schema, formats)
 	if len(formats) == 0 {
 		return
 	}
@@ -231,59 +232,119 @@ func transformOpenAPIToJSONSchema(schema map[string]any) {
 func (v *jsonSchemaValidator) validate(value any) error {
 	if err := v.schema.Validate(value); err != nil {
 		// Convert jsonschema error to SchemaError
-		return convertJSONSchemaError(err)
+		return v.convertJSONSchemaError(err, value)
 	}
 	return nil
 }
 
 // convertJSONSchemaError converts a jsonschema validation error to OpenAPI SchemaError format
-func convertJSONSchemaError(err error) error {
+func (v *jsonSchemaValidator) convertJSONSchemaError(err error, value any) error {
 	// TODO: Go 1.26
 	// if err, ok := errors.AsType[*jsonschema.ValidationError](err); ok {
-	// 	return formatValidationError(err, "")
+	// 	return v.formatValidationError(err, value)
 	var validationErr *jsonschema.ValidationError
-	if errors.As(err, &validationErr) {
-		return formatValidationError(validationErr, "")
+	if !errors.As(err, &validationErr) {
+		return err
+	}
+
+	errs := v.formatValidationError(validationErr, value)
+	if len(errs) == 1 {
+		return errs[0]
+	}
+	return &SchemaError{
+		Value:                 value,
+		Schema:                v.bundled.root,
+		Origin:                fmt.Errorf("validation failed due to: %w", errs),
+		customizeMessageError: v.settings.customizeMessageError,
+	}
+}
+
+// formatValidationError recursively formats validation errors
+func (v *jsonSchemaValidator) formatValidationError(verr *jsonschema.ValidationError, value any) MultiError {
+	if len(verr.Causes) == 0 {
+		return MultiError{v.schemaError(verr, value)}
+	}
+
+	var causes MultiError
+	// The validator reaches an object's properties in map order.
+	for _, cause := range sortedCauses(verr.Causes) {
+		causes = append(causes, v.formatValidationError(cause, value)...)
+	}
+
+	// The synthetic root and a $ref hop are not failures of their own.
+	switch verr.ErrorKind.(type) {
+	case *kind.Schema, *kind.Reference:
+		return causes
+	}
+
+	err := v.schemaError(verr, value)
+	err.Origin = fmt.Errorf("validation failed due to: %w", causes)
+	return MultiError{err}
+}
+
+func (v *jsonSchemaValidator) schemaError(verr *jsonschema.ValidationError, value any) *SchemaError {
+	reversePath := slices.Clone(verr.InstanceLocation)
+	slices.Reverse(reversePath)
+
+	err := &SchemaError{
+		Value:                 valueAtLocation(value, verr.InstanceLocation),
+		reversePath:           reversePath,
+		Schema:                v.schemaAt(verr.SchemaURL),
+		Reason:                verr.ErrorKind.LocalizedString(englishPrinter),
+		customizeMessageError: v.settings.customizeMessageError,
+	}
+	keywordPath := verr.ErrorKind.KeywordPath()
+	if len(keywordPath) > 0 {
+		err.SchemaField = keywordPath[len(keywordPath)-1]
 	}
 	return err
 }
 
-// formatValidationError recursively formats validation errors
-func formatValidationError(verr *jsonschema.ValidationError, parentPath string) error {
-	// Build the path from InstanceLocation slice
-	path := "/" + strings.Join(verr.InstanceLocation, "/")
-	if parentPath != "" && path != "/" {
-		path = parentPath + path
-	} else if path == "/" {
-		path = parentPath
-	}
-
-	// Build error message using the Error() method
-	var msg strings.Builder
-	if path != "" {
-		fmt.Fprintf(&msg, `error at "%s": `, path)
-	}
-	msg.WriteString(verr.Error())
-
-	// If there are sub-errors, format them too
-	if len(verr.Causes) > 0 {
-		var subErrors MultiError
-		for _, cause := range verr.Causes {
-			if subErr := formatValidationError(cause, path); subErr != nil {
-				subErrors = append(subErrors, subErr)
-			}
+// schemaAt resolves a bundled location to the schema it was built from. A keyword
+// such as a boolean unevaluatedProperties resolves to the schema declaring it.
+func (v *jsonSchemaValidator) schemaAt(schemaURL string) *Schema {
+	_, pointer, _ := strings.Cut(schemaURL, "#")
+	for pointer != "" {
+		schema, ok := v.bundled.locations[pointer]
+		if ok {
+			return schema
 		}
-		if len(subErrors) > 0 {
-			return &SchemaError{
-				Reason: msg.String(),
-				Origin: fmt.Errorf("validation failed due to: %w", subErrors),
+		slash := strings.LastIndexByte(pointer, '/')
+		if slash < 0 {
+			break
+		}
+		pointer = pointer[:slash]
+	}
+	return v.bundled.root
+}
+
+func valueAtLocation(value any, location []string) any {
+	for _, token := range location {
+		switch container := value.(type) {
+		case map[string]any:
+			value = container[token]
+		case []any:
+			index, err := strconv.Atoi(token)
+			if err != nil || index < 0 || index >= len(container) {
+				return nil
 			}
+			value = container[index]
+		default:
+			return nil
 		}
 	}
+	return value
+}
 
-	return &SchemaError{
-		Reason: msg.String(),
-	}
+func sortedCauses(causes []*jsonschema.ValidationError) []*jsonschema.ValidationError {
+	sorted := slices.Clone(causes)
+	slices.SortStableFunc(sorted, func(a, b *jsonschema.ValidationError) int {
+		if c := slices.Compare(a.InstanceLocation, b.InstanceLocation); c != 0 {
+			return c
+		}
+		return slices.Compare(a.ErrorKind.KeywordPath(), b.ErrorKind.KeywordPath())
+	})
+	return sorted
 }
 
 // useJSONSchema2020 validates using the JSON Schema 2020-12 validator

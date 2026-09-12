@@ -1,4 +1,4 @@
-invalid webhooks: webhook "merchant.updated": invalid operation POST: invalid example: example merchant-updated-with-errors: Error at "/data/capabilities/receivePayments/problems/0/verificationErrors/0/code": value must be a string
+invalid webhooks: webhook "merchant.updated": invalid operation POST: invalid example: example merchant-updated-with-errors: validation failed due to: Error at "/data/capabilities/receivePayments/problems/0/verificationErrors/0/code": got number, want string
 Schema:
   {
     "description": "The verification error code.",
@@ -7,7 +7,7 @@ Schema:
 
 Value:
   28064
- | Error at "/data/capabilities/receivePayments/problems/0/verificationErrors/0/remediatingActions/0/code": value must be a string
+ | Error at "/data/capabilities/receivePayments/problems/0/verificationErrors/0/remediatingActions/0/code": got number, want string
 Schema:
   {
     "description": "The remediating action code.",
@@ -16,7 +16,7 @@ Schema:
 
 Value:
   2123
- | Error at "/data/capabilities/receivePayments/problems/0/verificationErrors/1/code": value must be a string
+ | Error at "/data/capabilities/receivePayments/problems/0/verificationErrors/1/code": got number, want string
 Schema:
   {
     "description": "The verification error code.",
@@ -25,7 +25,7 @@ Schema:
 
 Value:
   130
- | Error at "/data/capabilities/receivePayments/problems/0/verificationErrors/1/remediatingActions/0/code": value must be a string
+ | Error at "/data/capabilities/receivePayments/problems/0/verificationErrors/1/remediatingActions/0/code": got number, want string
 Schema:
   {
     "description": "The remediating action code.",
@@ -34,7 +34,7 @@ Schema:
 
 Value:
   1300
- | Error at "/data/capabilities/receivePayments/problems/0/verificationErrors/1/subErrors/0/code": value must be a string
+ | Error at "/data/capabilities/receivePayments/problems/0/verificationErrors/1/subErrors/0/code": got number, want string
 Schema:
   {
     "description": "The verification error code.",
@@ -43,7 +43,7 @@ Schema:
 
 Value:
   13000
- | Error at "/data/capabilities/receivePayments/problems/0/verificationErrors/1/subErrors/0/remediatingActions/0/code": value must be a string
+ | Error at "/data/capabilities/receivePayments/problems/0/verificationErrors/1/subErrors/0/remediatingActions": validation failed due to: Error at "/data/capabilities/receivePayments/problems/0/verificationErrors/1/subErrors/0/remediatingActions/0/code": got number, want string
 Schema:
   {
     "description": "The remediating action code.",
@@ -52,7 +52,7 @@ Schema:
 
 Value:
   1300
- | Error at "/data/capabilities/receivePayments/problems/0/verificationErrors/1/subErrors/0/remediatingActions/1/code": value must be a string
+ | Error at "/data/capabilities/receivePayments/problems/0/verificationErrors/1/subErrors/0/remediatingActions/1/code": got number, want string
 Schema:
   {
     "description": "The remediating action code.",

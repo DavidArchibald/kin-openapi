@@ -1,4 +1,4 @@
-invalid webhooks: webhook "balancePlatform.accountHolder.created": invalid operation POST: invalid example: example balancePlatform-accountHolder-created-lem-v3: Error at "/data/accountHolder/capabilities/sendToTransferInstrument/problems/0/verificationErrors/0/code": value must be a string
+invalid webhooks: webhook "balancePlatform.accountHolder.created": invalid operation POST: invalid example: example balancePlatform-accountHolder-created-lem-v3: validation failed due to: Error at "/data/accountHolder/capabilities/sendToTransferInstrument/problems/0/verificationErrors/0/code": got number, want string
 Schema:
   {
     "description": "The verification error code.",
@@ -7,7 +7,7 @@ Schema:
 
 Value:
   2902
- | Error at "/data/accountHolder/capabilities/sendToTransferInstrument/problems/0/verificationErrors/0/remediatingActions/0/code": value must be a string
+ | Error at "/data/accountHolder/capabilities/sendToTransferInstrument/problems/0/verificationErrors/0/remediatingActions/0/code": got number, want string
 Schema:
   {
     "description": "The remediating action code.",
@@ -16,7 +16,7 @@ Schema:
 
 Value:
   2902
- | Error at "/data/accountHolder/capabilities/sendToTransferInstrument/problems/1/verificationErrors/0/code": value must be a string
+ | Error at "/data/accountHolder/capabilities/sendToTransferInstrument/problems/1/verificationErrors/0/code": got number, want string
 Schema:
   {
     "description": "The verification error code.",
@@ -25,7 +25,7 @@ Schema:
 
 Value:
   28037
- | Error at "/data/accountHolder/capabilities/sendToTransferInstrument/problems/1/verificationErrors/0/remediatingActions/0/code": value must be a string
+ | Error at "/data/accountHolder/capabilities/sendToTransferInstrument/problems/1/verificationErrors/0/remediatingActions/0/code": got number, want string
 Schema:
   {
     "description": "The remediating action code.",
@@ -34,7 +34,7 @@ Schema:
 
 Value:
   1703
- | Error at "/data/accountHolder/capabilities/sendToTransferInstrument/problems/2/verificationErrors/0/code": value must be a string
+ | Error at "/data/accountHolder/capabilities/sendToTransferInstrument/problems/2/verificationErrors/0/code": got number, want string
 Schema:
   {
     "description": "The verification error code.",
@@ -43,7 +43,7 @@ Schema:
 
 Value:
   28037
- | Error at "/data/accountHolder/capabilities/sendToTransferInstrument/problems/2/verificationErrors/0/remediatingActions/0/code": value must be a string
+ | Error at "/data/accountHolder/capabilities/sendToTransferInstrument/problems/2/verificationErrors/0/remediatingActions/0/code": got number, want string
 Schema:
   {
     "description": "The remediating action code.",
@@ -52,7 +52,7 @@ Schema:
 
 Value:
   1703
- | Error at "/data/accountHolder/capabilities/sendToTransferInstrument/problems/3/verificationErrors/0/code": value must be a string
+ | Error at "/data/accountHolder/capabilities/sendToTransferInstrument/problems/3/verificationErrors/0/code": got number, want string
 Schema:
   {
     "description": "The verification error code.",
@@ -61,7 +61,7 @@ Schema:
 
 Value:
   28189
- | Error at "/data/accountHolder/capabilities/sendToTransferInstrument/problems/3/verificationErrors/0/remediatingActions/0/code": value must be a string
+ | Error at "/data/accountHolder/capabilities/sendToTransferInstrument/problems/3/verificationErrors/0/remediatingActions/0/code": got number, want string
 Schema:
   {
     "description": "The remediating action code.",
@@ -70,7 +70,7 @@ Schema:
 
 Value:
   2151
- | Error at "/data/accountHolder/capabilities/sendToTransferInstrument/problems/3/verificationErrors/1/code": value must be a string
+ | Error at "/data/accountHolder/capabilities/sendToTransferInstrument/problems/3/verificationErrors/1/code": got number, want string
 Schema:
   {
     "description": "The verification error code.",
@@ -79,7 +79,7 @@ Schema:
 
 Value:
   150
- | Error at "/data/accountHolder/capabilities/sendToTransferInstrument/problems/3/verificationErrors/1/subErrors/0/code": value must be a string
+ | Error at "/data/accountHolder/capabilities/sendToTransferInstrument/problems/3/verificationErrors/1/subErrors/0/code": got number, want string
 Schema:
   {
     "description": "The verification error code.",
@@ -88,7 +88,7 @@ Schema:
 
 Value:
   15016
- | Error at "/data/accountHolder/capabilities/sendToTransferInstrument/problems/3/verificationErrors/1/subErrors/0/remediatingActions/0/code": value must be a string
+ | Error at "/data/accountHolder/capabilities/sendToTransferInstrument/problems/3/verificationErrors/1/subErrors/0/remediatingActions": validation failed due to: Error at "/data/accountHolder/capabilities/sendToTransferInstrument/problems/3/verificationErrors/1/subErrors/0/remediatingActions/0/code": got number, want string
 Schema:
   {
     "description": "The remediating action code.",
@@ -97,7 +97,7 @@ Schema:
 
 Value:
   1500
- | Error at "/data/accountHolder/capabilities/sendToTransferInstrument/problems/3/verificationErrors/1/subErrors/0/remediatingActions/1/code": value must be a string
+ | Error at "/data/accountHolder/capabilities/sendToTransferInstrument/problems/3/verificationErrors/1/subErrors/0/remediatingActions/1/code": got number, want string
 Schema:
   {
     "description": "The remediating action code.",
@@ -106,7 +106,7 @@ Schema:
 
 Value:
   1501
- | Error at "/data/accountHolder/capabilities/sendToTransferInstrument/problems/3/verificationErrors/2/code": value must be a string
+ | Error at "/data/accountHolder/capabilities/sendToTransferInstrument/problems/3/verificationErrors/2/code": got number, want string
 Schema:
   {
     "description": "The verification error code.",
@@ -115,7 +115,7 @@ Schema:
 
 Value:
   28067
- | Error at "/data/accountHolder/capabilities/sendToTransferInstrument/problems/3/verificationErrors/2/remediatingActions/0/code": value must be a string
+ | Error at "/data/accountHolder/capabilities/sendToTransferInstrument/problems/3/verificationErrors/2/remediatingActions/0/code": got number, want string
 Schema:
   {
     "description": "The remediating action code.",

@@ -419,3 +419,85 @@ func TestBuiltInValidatorStillWorks(t *testing.T) {
 		require.Error(t, err)
 	})
 }
+
+func jsonSchema2020ErrorDoc(t *testing.T) *openapi3.T {
+	t.Helper()
+
+	loader := openapi3.NewLoader()
+	doc, err := loader.LoadFromData([]byte(`
+openapi: 3.1.0
+info: {title: t, version: "1"}
+paths: {}
+components:
+  schemas:
+    Outer:
+      type: object
+      unevaluatedProperties: false
+      properties:
+        detail: {$ref: '#/components/schemas/Detail'}
+    Detail:
+      type: object
+      properties:
+        note: {type: string}
+        n: {type: integer, minimum: 3}
+`))
+	require.NoError(t, err)
+	require.NoError(t, doc.Validate(loader.Context))
+	return doc
+}
+
+func TestJSONSchema2020Validator_ErrorNamesSchemaAndValue(t *testing.T) {
+	doc := jsonSchema2020ErrorDoc(t)
+	outer := doc.Components.Schemas["Outer"].Value
+
+	err := outer.VisitJSON(map[string]any{
+		"detail": map[string]any{"note": 42},
+	}, openapi3.EnableJSONSchema2020())
+
+	var schemaErr *openapi3.SchemaError
+	require.ErrorAs(t, err, &schemaErr)
+	require.Equal(t, []string{"detail", "note"}, schemaErr.JSONPointer())
+	require.Equal(t, "type", schemaErr.SchemaField)
+	require.EqualValues(t, 42, schemaErr.Value)
+	// The failing schema sits behind the $ref, so only the resolved target has it.
+	require.Same(t, doc.Components.Schemas["Detail"].Value.Properties["note"].Value, schemaErr.Schema)
+}
+
+func TestJSONSchema2020Validator_ErrorFallsBackToEnclosingSchema(t *testing.T) {
+	doc := jsonSchema2020ErrorDoc(t)
+	outer := doc.Components.Schemas["Outer"].Value
+
+	err := outer.VisitJSON(map[string]any{"surprise": 1}, openapi3.EnableJSONSchema2020())
+
+	var schemaErr *openapi3.SchemaError
+	require.ErrorAs(t, err, &schemaErr)
+	// unevaluatedProperties is a boolean, not a schema of its own.
+	require.Same(t, outer, schemaErr.Schema)
+	require.EqualValues(t, 1, schemaErr.Value)
+}
+
+func TestJSONSchema2020Validator_ErrorOrderIsStable(t *testing.T) {
+	doc := jsonSchema2020ErrorDoc(t)
+	outer := doc.Components.Schemas["Outer"].Value
+	value := map[string]any{"detail": map[string]any{"note": 1, "n": 0}}
+
+	first := outer.VisitJSON(value, openapi3.EnableJSONSchema2020()).Error()
+	require.Contains(t, first, "/detail/n")
+	require.Contains(t, first, "/detail/note")
+	for range 50 {
+		require.Equal(t, first, outer.VisitJSON(value, openapi3.EnableJSONSchema2020()).Error())
+	}
+}
+
+func TestJSONSchema2020Validator_ErrorUsesMessageCustomizer(t *testing.T) {
+	doc := jsonSchema2020ErrorDoc(t)
+	outer := doc.Components.Schemas["Outer"].Value
+
+	err := outer.VisitJSON(map[string]any{
+		"detail": map[string]any{"note": 42},
+	}, openapi3.EnableJSONSchema2020(),
+		openapi3.SetSchemaErrorMessageCustomizer(func(err *openapi3.SchemaError) string {
+			return "rejected " + err.SchemaField
+		}))
+	require.EqualError(t, err, "rejected type")
+}

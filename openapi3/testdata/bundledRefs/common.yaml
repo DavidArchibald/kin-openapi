@@ -1,0 +1,6 @@
+Item:
+  type: object
+  additionalProperties: false
+  properties:
+    fromCommon:
+      type: string
